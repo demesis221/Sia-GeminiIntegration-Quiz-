@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { questions } from '../data/questions';
 import { Question } from '../types';
 import { saveProgress, saveQuizResult } from '../utils/storage';
-import { evaluateEssay } from '../services/gemini';
 
 const QuizGame: React.FC = () => {
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
