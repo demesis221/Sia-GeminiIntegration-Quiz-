@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { getProgress, getQuizResults } from '../utils/storage';
 
 const Scoreboard: React.FC = () => {
