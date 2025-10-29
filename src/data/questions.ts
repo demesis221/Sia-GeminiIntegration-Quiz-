@@ -5,7 +5,7 @@ export const questions: Question[] = [
   {
     id: 1,
     question: "It is the process that involves connecting various computing systems and software applications—either physically or functionally—to operate together as a unified system.",
-    options: ["System Integration", "System Architecture", "Enterprise Architecture", "DevOps"],
+    options: [],
     answer: "System Integration",
     explanation: "System Integration connects various computing systems to work as a unified system.",
     category: "System Integration",
@@ -14,7 +14,7 @@ export const questions: Question[] = [
   {
     id: 2,
     question: "It is the conceptual model that defines the structure, behavior, and more of a system. It provides a blueprint for the system and project development.",
-    options: ["System Architecture", "Enterprise Architecture", "System Integration", "DevOps"],
+    options: [],
     answer: "System Architecture",
     explanation: "System Architecture is the conceptual model that defines system structure and behavior.",
     category: "System Architecture",
@@ -23,7 +23,7 @@ export const questions: Question[] = [
   {
     id: 3,
     question: "It is a strategic framework that enables the tracking of connections and data flows between diverse systems and applications within an organization.",
-    options: ["Enterprise Architecture", "System Architecture", "System Integration", "Project Management"],
+    options: [],
     answer: "Enterprise Architecture",
     explanation: "Enterprise Architecture provides strategic framework for tracking system connections and data flows.",
     category: "Enterprise Architecture",
@@ -32,7 +32,7 @@ export const questions: Question[] = [
   {
     id: 4,
     question: "It is a set of practices that combines software development (Dev) and IT operations (Ops) to shorten the development lifecycle and deliver high-quality software continuously.",
-    options: ["DevOps", "Agile", "Scrum", "Waterfall"],
+    options: [],
     answer: "DevOps",
     explanation: "DevOps combines development and operations to shorten development lifecycle.",
     category: "DevOps",
@@ -399,6 +399,34 @@ export const questions: Question[] = [
     explanation: "The Scrum Master facilitates Scrum events when requested or needed.",
     category: "Agile & Scrum",
     type: "true-false"
+  },
+  // Test IV - Essay Questions
+  {
+    id: 45,
+    question: "Discuss how the Agile mindset differs from traditional project management approaches in handling uncertainty and turbulence.",
+    options: [],
+    answer: "The Agile mindset focuses on flexibility, collaboration, and continuous improvement. It welcomes change and adapts quickly to new requirements using iterative development and feedback. Traditional project management follows a fixed plan, making it harder to adjust during uncertainty. Agile's adaptive nature and sprint-based reviews make it ideal for turbulent environments.",
+    explanation: "Agile embraces change through iterative cycles, customer collaboration, and adaptive planning, while traditional approaches rely on fixed plans and documentation.",
+    category: "Agile & Scrum",
+    type: "essay"
+  },
+  {
+    id: 46,
+    question: "Critically evaluate how the Scrum framework enables teams to navigate complexity and uncertainty in project management.",
+    options: [],
+    answer: "Scrum helps manage complexity through its structured roles (Product Owner, Scrum Master, Development Team), time-boxed sprints, and transparency. It encourages collaboration and continuous feedback, allowing teams to adapt and prioritize efficiently. This iterative process reduces risk, increases visibility, and promotes steady delivery of valuable results.",
+    explanation: "Scrum provides structure through roles, events, and artifacts while maintaining flexibility through iterative development and continuous feedback loops.",
+    category: "Agile & Scrum",
+    type: "essay"
+  },
+  {
+    id: 47,
+    question: "Discuss the role of Enterprise Architecture.",
+    options: [],
+    answer: "Enterprise Architecture (EA) serves as a blueprint that aligns an organization's IT infrastructure and processes with business goals. It defines systems, standards, and frameworks to ensure consistency, efficiency, and strategic alignment. EA supports innovation, digital transformation, and efficient resource management by integrating technology with business strategy.",
+    explanation: "Enterprise Architecture provides strategic alignment between business objectives and IT capabilities, ensuring organizational coherence and efficiency.",
+    category: "Enterprise Architecture",
+    type: "essay"
   }
 ];
 

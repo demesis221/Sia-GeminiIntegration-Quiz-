@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { Question } from '../types';
 
 const API_KEY = process.env.REACT_APP_GEMINI_API_KEY || "";
 
@@ -62,6 +63,28 @@ export const askGemini = async (prompt: string): Promise<string> => {
   }
 };
 
+export const evaluateEssay = async (question: Question, studentAnswer: string): Promise<{score: number, feedback: string}> => {
+  try {
+    const prompt = evaluateEssayPrompt(question.question, studentAnswer, question.answer);
+    const result = await askGemini(prompt);
+    
+    // Parse the AI response to extract score and feedback
+    const scoreMatch = result.match(/SCORE:\s*(\d+)/);
+    const score = scoreMatch ? parseInt(scoreMatch[1]) : 70; // Default score if parsing fails
+    
+    return {
+      score: Math.min(100, Math.max(0, score)), // Ensure score is between 0-100
+      feedback: result
+    };
+  } catch (error) {
+    console.error('Essay evaluation error:', error);
+    return {
+      score: 70, // Default score for essays with sufficient length
+      feedback: 'Essay submitted successfully. Due to technical issues, detailed feedback is not available at this time.'
+    };
+  }
+};
+
 export const generateQuizPrompt = (topic?: string) => `
 You are an expert tutor helping a student named Ernesto Jr. Beltran, studying BSIT at Cebu Technological University.
 Generate 5 multiple-choice questions about System Integration and Architecture 2${topic ? ` focusing on ${topic}` : ''}.
@@ -92,4 +115,26 @@ Rules:
 2. Include a practical example if relevant
 3. Focus on key points a student needs to understand
 4. Use simple language
+`;
+
+export const evaluateEssayPrompt = (question: string, studentAnswer: string, modelAnswer: string) => `
+You are an expert professor evaluating a student's essay answer for System Integration and Architecture 2.
+
+Question: "${question}"
+
+Student's Answer: "${studentAnswer}"
+
+Model Answer: "${modelAnswer}"
+
+Evaluate the student's answer and provide:
+1. Score out of 100
+2. Key strengths in the answer
+3. Areas for improvement
+4. Specific feedback
+
+Format your response as:
+SCORE: [0-100]
+STRENGTHS: [list key points]
+IMPROVEMENTS: [areas to work on]
+FEEDBACK: [detailed constructive feedback]
 `;

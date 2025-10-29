@@ -5,7 +5,7 @@ export interface Question {
   answer: string;
   explanation?: string;
   category: string;
-  type: 'multiple-choice' | 'true-false' | 'fill-blank';
+  type: 'multiple-choice' | 'true-false' | 'fill-blank' | 'essay';
 }
 
 export interface QuizResult {

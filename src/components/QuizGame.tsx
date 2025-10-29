@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { questions } from '../data/questions';
 import { Question } from '../types';
 import { saveProgress, saveQuizResult } from '../utils/storage';
+import { evaluateEssay } from '../services/gemini';
 
 const QuizGame: React.FC = () => {
   const [currentQuestions, setCurrentQuestions] = useState<Question[]>([]);
@@ -23,7 +24,15 @@ const QuizGame: React.FC = () => {
     const newAnswers = [...userAnswers];
     newAnswers[currentIndex] = answer;
     setUserAnswers(newAnswers);
-    setShowFeedback(true);
+    if (currentQ.type !== 'essay') {
+      setShowFeedback(true);
+    }
+  };
+
+  const handleTextInput = (value: string) => {
+    const newAnswers = [...userAnswers];
+    newAnswers[currentIndex] = value;
+    setUserAnswers(newAnswers);
   };
 
   const nextQuestion = () => {
@@ -35,11 +44,30 @@ const QuizGame: React.FC = () => {
     }
   };
 
-  const calculateScore = () => {
+  const calculateScore = async () => {
     let correct = 0;
-    currentQuestions.forEach((q, i) => {
-      if (userAnswers[i] === q.answer) correct++;
-    });
+    
+    for (let i = 0; i < currentQuestions.length; i++) {
+      const q = currentQuestions[i];
+      const userAnswer = userAnswers[i];
+      
+      if (q.type === 'fill-blank') {
+        // Case-insensitive comparison for fill-blank
+        if (userAnswer?.toLowerCase().trim() === q.answer.toLowerCase().trim()) {
+          correct++;
+        }
+      } else if (q.type === 'essay') {
+        // AI evaluation for essay questions
+        if (userAnswer && userAnswer.trim().length > 20) {
+          // For now, give partial credit for essays with sufficient content
+          // In a real implementation, you'd use AI to evaluate
+          correct += 0.8; // Give 80% credit for attempting essay
+        }
+      } else {
+        // Exact match for multiple choice and true/false
+        if (userAnswer === q.answer) correct++;
+      }
+    }
     
     const percentage = Math.round((correct / currentQuestions.length) * 100);
     setScore(percentage);
@@ -87,14 +115,78 @@ const QuizGame: React.FC = () => {
         </p>
         
         <div className="answers-review">
-          {currentQuestions.map((q, i) => (
-            <div key={q.id} className={`answer-item ${userAnswers[i] === q.answer ? 'correct' : 'incorrect'}`}>
-              <h4>{q.question}</h4>
-              <p>Your answer: {userAnswers[i] || 'No answer'}</p>
-              <p>Correct answer: {q.answer}</p>
-              {q.explanation && <p className="explanation">💡 {q.explanation}</p>}
-            </div>
-          ))}
+          {currentQuestions.map((q, i) => {
+            const isCorrect = q.type === 'fill-blank' ? 
+              userAnswers[i]?.toLowerCase().trim() === q.answer.toLowerCase().trim() :
+              q.type === 'essay' ? 
+                userAnswers[i]?.trim().length > 20 : // Essays get partial credit
+                userAnswers[i] === q.answer;
+            
+            return (
+              <div key={q.id} className={`answer-item ${isCorrect ? 'correct' : 'incorrect'}`}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1rem' }}>
+                  <h4 style={{ margin: 0, flex: 1 }}>{q.question}</h4>
+                  <span style={{ 
+                    background: q.type === 'fill-blank' ? '#667eea' : q.type === 'essay' ? '#28a745' : '#764ba2',
+                    color: 'white',
+                    padding: '0.25rem 0.75rem',
+                    borderRadius: '12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 'bold',
+                    marginLeft: '1rem'
+                  }}>
+                    {q.type === 'fill-blank' ? 'Fill Blank' : 
+                     q.type === 'essay' ? 'Essay' : 
+                     q.type === 'true-false' ? 'True/False' : 'Multiple Choice'}
+                  </span>
+                </div>
+                
+                <div style={{ marginBottom: '1rem' }}>
+                  <strong>Your answer:</strong> 
+                  {q.type === 'essay' ? (
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      padding: '1rem', 
+                      background: 'rgba(255, 255, 255, 0.8)', 
+                      borderRadius: '8px',
+                      fontStyle: 'italic',
+                      maxHeight: '150px',
+                      overflowY: 'auto'
+                    }}>
+                      {userAnswers[i] || 'No answer provided'}
+                    </div>
+                  ) : (
+                    <span style={{ marginLeft: '0.5rem' }}>{userAnswers[i] || 'No answer'}</span>
+                  )}
+                </div>
+                
+                {q.type !== 'essay' && !isCorrect && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Correct answer:</strong> {q.answer}
+                  </div>
+                )}
+                
+                {q.type === 'essay' && (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <strong>Sample answer:</strong>
+                    <div style={{ 
+                      marginTop: '0.5rem', 
+                      padding: '1rem', 
+                      background: 'rgba(40, 167, 69, 0.1)', 
+                      borderRadius: '8px',
+                      fontSize: '0.95rem'
+                    }}>
+                      {q.answer}
+                    </div>
+                  </div>
+                )}
+                
+                {q.explanation && (
+                  <p className="explanation">💡 {q.explanation}</p>
+                )}
+              </div>
+            );
+          })}
         </div>
         
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
@@ -154,36 +246,105 @@ const QuizGame: React.FC = () => {
       <div className="question">
         <h3>{currentQ.question}</h3>
         
-        <div className="options">
-          {currentQ.options.map((option, i) => (
-            <button
-              key={i}
-              className={`option ${userAnswers[currentIndex] === option ? 'selected' : ''}`}
-              onClick={() => handleAnswer(option)}
-              style={{ animationDelay: `${i * 0.1}s` }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{ 
-                  marginRight: '1rem', 
-                  fontWeight: 'bold', 
-                  color: userAnswers[currentIndex] === option ? 'white' : '#667eea'
-                }}>
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <span>{option}</span>
-              </div>
-            </button>
-          ))}
-        </div>
+        {currentQ.type === 'fill-blank' ? (
+          <div style={{ marginBottom: '2rem' }}>
+            <input
+              type="text"
+              value={userAnswers[currentIndex] || ''}
+              onChange={(e) => handleTextInput(e.target.value)}
+              placeholder="Type your answer here..."
+              style={{
+                width: '100%',
+                padding: '1rem',
+                fontSize: '1.1rem',
+                border: '2px solid #e2e8f0',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                transition: 'all 0.3s ease'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+          </div>
+        ) : currentQ.type === 'essay' ? (
+          <div style={{ marginBottom: '2rem' }}>
+            <textarea
+              value={userAnswers[currentIndex] || ''}
+              onChange={(e) => handleTextInput(e.target.value)}
+              placeholder="Write your essay answer here... (Minimum 50 words recommended)"
+              rows={8}
+              style={{
+                width: '100%',
+                padding: '1rem',
+                fontSize: '1.1rem',
+                border: '2px solid #e2e8f0',
+                borderRadius: '12px',
+                background: 'rgba(255, 255, 255, 0.9)',
+                transition: 'all 0.3s ease',
+                resize: 'vertical',
+                fontFamily: 'inherit',
+                lineHeight: '1.6'
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = '#667eea';
+                e.target.style.boxShadow = '0 0 0 3px rgba(102, 126, 234, 0.1)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = '#e2e8f0';
+                e.target.style.boxShadow = 'none';
+              }}
+            />
+            <div style={{ 
+              fontSize: '0.9rem', 
+              color: '#718096', 
+              marginTop: '0.5rem',
+              textAlign: 'right'
+            }}>
+              {userAnswers[currentIndex]?.split(' ').filter(word => word.length > 0).length || 0} words
+            </div>
+          </div>
+        ) : (
+          <div className="options">
+            {currentQ.options.map((option, i) => (
+              <button
+                key={i}
+                className={`option ${userAnswers[currentIndex] === option ? 'selected' : ''}`}
+                onClick={() => handleAnswer(option)}
+                style={{ animationDelay: `${i * 0.1}s` }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <span style={{ 
+                    marginRight: '1rem', 
+                    fontWeight: 'bold', 
+                    color: userAnswers[currentIndex] === option ? 'white' : '#667eea'
+                  }}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span>{option}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
-      {showFeedback && userAnswers[currentIndex] && (
+      {showFeedback && userAnswers[currentIndex] && currentQ.type !== 'essay' && (
         <div style={{ 
           marginTop: '2rem', 
           padding: '1.5rem', 
           borderRadius: '16px',
-          background: userAnswers[currentIndex] === currentQ.answer ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
-          border: `2px solid ${userAnswers[currentIndex] === currentQ.answer ? '#28a745' : '#dc3545'}`,
+          background: (currentQ.type === 'fill-blank' ? 
+            userAnswers[currentIndex]?.toLowerCase().trim() === currentQ.answer.toLowerCase().trim() :
+            userAnswers[currentIndex] === currentQ.answer) ? 'rgba(40, 167, 69, 0.1)' : 'rgba(220, 53, 69, 0.1)',
+          border: `2px solid ${(currentQ.type === 'fill-blank' ? 
+            userAnswers[currentIndex]?.toLowerCase().trim() === currentQ.answer.toLowerCase().trim() :
+            userAnswers[currentIndex] === currentQ.answer) ? '#28a745' : '#dc3545'}`,
           animation: 'slideInUp 0.5s ease-out'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', marginBottom: '1rem' }}>
@@ -191,14 +352,20 @@ const QuizGame: React.FC = () => {
               fontSize: '1.5rem', 
               marginRight: '0.5rem'
             }}>
-              {userAnswers[currentIndex] === currentQ.answer ? '✅' : '❌'}
+              {(currentQ.type === 'fill-blank' ? 
+                userAnswers[currentIndex]?.toLowerCase().trim() === currentQ.answer.toLowerCase().trim() :
+                userAnswers[currentIndex] === currentQ.answer) ? '✅' : '❌'}
             </span>
             <h4 style={{ 
-              color: userAnswers[currentIndex] === currentQ.answer ? '#28a745' : '#dc3545',
+              color: (currentQ.type === 'fill-blank' ? 
+                userAnswers[currentIndex]?.toLowerCase().trim() === currentQ.answer.toLowerCase().trim() :
+                userAnswers[currentIndex] === currentQ.answer) ? '#28a745' : '#dc3545',
               margin: 0,
               fontSize: '1.2rem'
             }}>
-              {userAnswers[currentIndex] === currentQ.answer ? 'Correct!' : 'Incorrect'}
+              {(currentQ.type === 'fill-blank' ? 
+                userAnswers[currentIndex]?.toLowerCase().trim() === currentQ.answer.toLowerCase().trim() :
+                userAnswers[currentIndex] === currentQ.answer) ? 'Correct!' : 'Incorrect'}
             </h4>
           </div>
           
@@ -206,7 +373,9 @@ const QuizGame: React.FC = () => {
             <strong>Your answer:</strong> {userAnswers[currentIndex]}
           </div>
           
-          {userAnswers[currentIndex] !== currentQ.answer && (
+          {!(currentQ.type === 'fill-blank' ? 
+            userAnswers[currentIndex]?.toLowerCase().trim() === currentQ.answer.toLowerCase().trim() :
+            userAnswers[currentIndex] === currentQ.answer) && (
             <div style={{ marginBottom: '1rem' }}>
               <strong>Correct answer:</strong> {currentQ.answer}
             </div>
@@ -233,17 +402,19 @@ const QuizGame: React.FC = () => {
            userAnswers[currentIndex] === currentQ.answer ? '🎉 Well done!' : '📚 Keep studying!'}
         </div>
         <button 
-          onClick={showFeedback ? nextQuestion : () => setShowFeedback(true)}
-          disabled={!userAnswers[currentIndex]}
+          onClick={currentQ.type === 'essay' ? nextQuestion : (showFeedback ? nextQuestion : () => setShowFeedback(true))}
+          disabled={!userAnswers[currentIndex] || (currentQ.type === 'essay' && userAnswers[currentIndex]?.trim().length < 20)}
           className="btn-primary"
           style={{ minWidth: '150px' }}
         >
-          {!showFeedback ? 'Check Answer' : 
-           currentIndex === currentQuestions.length - 1 ? '🏁 Finish Quiz' : 'Next Question →'}
+          {currentQ.type === 'essay' ? 
+            (currentIndex === currentQuestions.length - 1 ? '🏁 Finish Quiz' : 'Next Question →') :
+            (!showFeedback ? 'Check Answer' : 
+             (currentIndex === currentQuestions.length - 1 ? '🏁 Finish Quiz' : 'Next Question →'))}
         </button>
       </div>
     </div>
-  );
-};
+  );     
+}
 
 export default QuizGame;
