@@ -190,6 +190,27 @@ const QuizGame: React.FC = () => {
         
         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center', flexWrap: 'wrap' }}>
           <button onClick={restartQuiz} className="btn-primary">Try Again (All {questions.length} Questions)</button>
+          {(() => {
+            const wrongQuestions = currentQuestions.filter((q, i) => {
+              const isCorrect = q.type === 'fill-blank' ? 
+                userAnswers[i]?.toLowerCase().trim() === q.answer.toLowerCase().trim() :
+                q.type === 'essay' ? 
+                  userAnswers[i]?.trim().length > 20 :
+                  userAnswers[i] === q.answer;
+              return !isCorrect;
+            });
+            
+            return wrongQuestions.length > 0 ? (
+              <button onClick={() => {
+                setCurrentQuestions(wrongQuestions);
+                setCurrentIndex(0);
+                setUserAnswers(new Array(wrongQuestions.length).fill(''));
+                setShowResults(false);
+                setShowFeedback(false);
+                setScore(0);
+              }} className="btn-secondary" style={{ background: '#dc3545', borderColor: '#dc3545' }}>Retry Wrong Questions ({wrongQuestions.length})</button>
+            ) : null;
+          })()}
           <button onClick={() => {
             const shuffled = [...questions].sort(() => Math.random() - 0.5).slice(0, 10);
             setCurrentQuestions(shuffled);
